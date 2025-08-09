@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tunelith - Innovation Technologique</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8fafc;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Header avec animation de gradient */
+        header {
+            background: linear-gradient(135deg, #004aad 0%, #0066cc 50%, #ff6600 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 6s ease infinite;
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,74,173,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 70%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .logo-container {
+            margin-bottom: 1rem;
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(45deg, #ff6600, #ffaa44);
+            border-radius: 50%;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 30px rgba(255,102,0,0.4);
+            border: 4px solid rgba(255,255,255,0.3);
+        }
+
+        header h1 {
+            font-size: 2.8rem;
+            margin: 1rem 0 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: titleGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            from { text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+            to { text-shadow: 2px 2px 20px rgba(255,255,255,0.5), 2px 2px 4px rgba(0,0,0,0.3); }
+        }
+
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 1rem;
+        }
+
+        /* Navigation moderne */
+        nav {
+            background: rgba(0, 53, 128, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 0.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav button {
+            background: none;
+            border: none;
+            color: white;
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            margin: 0.25rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        nav button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,102,0,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        nav button:hover::before {
+            left: 100%;
+        }
+
+        nav button:hover {
+            background: linear-gradient(45deg, #ff6600, #ff8533);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,102,0,0.4);
+        }
+
+        nav button.active {
+            background: linear-gradient(45deg, #ff6600, #ff8533);
+            box-shadow: 0 3px 10px rgba(255,102,0,0.3);
+        }
+
+        /* Sections avec animations */
+        section {
+            display: none;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 2rem auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        section.active {
+            display: block;
+        }
+
+        section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #004aad, #ff6600);
+        }
+
+        section h2 {
+            color: #004aad;
+            font-size: 2.2rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            display: inline-block;
+        }
+
+        section h2::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: #ff6600;
+            transition: width 0.3s ease;
+        }
+
+        section:hover h2::after {
+            width: 100px;
+        }
+
+        /* Page d'accueil spéciale */
+        .hero-content {
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: #ff6600;
+            box-shadow: 0 15px 30px rgba(255,102,0,0.2);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #004aad;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-weight: 600;
+        }
+
+        /* Services avec cartes modernes */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .service-card {
+            background: linear-gradient(135deg, #ffffff, #f8fafc);
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,102,0,0.1), transparent);
+            transition: left 0.6s;
+        }
+
+        .service-card:hover::before {
+            left: 100%;
+        }
+
+        .service-card:hover {
+            transform: translateY(-10px);
+            border-color: #ff6600;
+            box-shadow: 0 20px 40px rgba(255,102,0,0.15);
+        }
+
+        .service-icon {
+            font-size: 3rem;
+            color: #004aad;
+            margin-bottom: 1rem;
+            transition: color 0.3s ease;
+        }
+
+        .service-card:hover .service-icon {
+            color: #ff6600;
+        }
+
+        .service-card h3 {
+            color: #004aad;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Formulaire de contact stylé */
+        .contact-form {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            padding: 2rem;
+            border-radius: 15px;
+            margin-top: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #ff6600;
+            box-shadow: 0 0 20px rgba(255,102,0,0.2);
+            transform: translateY(-2px);
+        }
+
+        .form-group label {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            color: #666;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .form-group input:focus + label,
+        .form-group textarea:focus + label,
+        .form-group input:not(:placeholder-shown) + label,
+        .form-group textarea:not(:placeholder-shown) + label {
+            top: -0.5rem;
+            left: 0.5rem;
+            font-size: 0.8rem;
+            color: #ff6600;
+            background: white;
+            padding: 0 0.5rem;
+        }
+
+        .submit-btn {
+            background: linear-gradient(45deg, #004aad, #0066cc, #ff6600);
+            background-size: 200% 200%;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            animation: gradientShift 3s ease infinite;
+            width: 100%;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(255,102,0,0.4);
+        }
+
+        /* Réseaux sociaux */
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .social-link {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .social-link.facebook { background: #1877f2; }
+        .social-link.linkedin { background: #0a66c2; }
+        .social-link.twitter { background: #1da1f2; }
+        .social-link.instagram { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+
+        .social-link:hover {
+            transform: translateY(-5px) scale(1.1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        /* Messages de succès */
+        .success-message {
+            background: linear-gradient(45deg, #22c55e, #16a34a);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            text-align: center;
+            display: none;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header h1 { font-size: 2rem; }
+            .hero-stats { grid-template-columns: 1fr; }
+            .services-grid { grid-template-columns: 1fr; }
+            nav { padding: 0; }
+            nav button { padding: 0.8rem 1rem; font-size: 0.9rem; }
+            section { margin: 1rem; padding: 1.5rem; }
+        }
+
+        /* Animations supplémentaires */
+        .fade-in {
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .bounce {
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-content">
+        <div class="logo-container">
+            <div class="logo">T</div>
+        </div>
+        <h1>Tunelith</h1>
+        <p>Innovation Technologique • IA • Développement Web • Systèmes Embarqués</p>
+    </div>
+</header>
+
+<nav>
+    <button class="nav-btn active" onclick="showSection('home')">
+        <i class="fas fa-home"></i> Accueil
+    </button>
+    <button class="nav-btn" onclick="showSection('services')">
+        <i class="fas fa-cogs"></i> Services
+    </button>
+    <button class="nav-btn" onclick="showSection('about')">
+        <i class="fas fa-users"></i> À Propos
+    </button>
+    <button class="nav-btn" onclick="showSection('contact')">
+        <i class="fas fa-envelope"></i> Contact
+    </button>
+</nav>
+
+<section id="home" class="active">
+    <div class="hero-content">
+        <h2><i class="fas fa-rocket"></i> Notre Mission</h2>
+        <p style="font-size: 1.2rem; text-align: center; margin: 2rem 0; color: #555;">
+            Chez Tunelith, nous combinons créativité et technologie pour livrer des solutions innovantes 
+            en développement web, intelligence artificielle et systèmes embarqués. Notre objectif est 
+            d'aider les entreprises à prospérer dans l'ère numérique.
+        </p>
+        
+        <div class="hero-stats">
+            <div class="stat-card">
+                <div class="stat-number">50+</div>
+                <div class="stat-label">Projets Réalisés</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">30+</div>
+                <div class="stat-label">Clients Satisfaits</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">3</div>
+                <div class="stat-label">Années d'Expérience</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">24/7</div>
+                <div class="stat-label">Support Client</div>
+            </div>
+        </div>
+
+        <div style="margin: 3rem 0; text-align: center;">
+            <h3 style="color: #004aad; margin-bottom: 1rem;">Découvrez Notre Travail</h3>
+            <video controls style="width: 100%; max-width: 800px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                <source src="static/web.mp4" type="video/mp4">
+                Votre navigateur ne supporte pas la lecture vidéo.
+            </video>
+        </div>
+    </div>
+</section>
+
+<section id="services">
+    <h2><i class="fas fa-cogs"></i> Nos Services</h2>
+    <p style="font-size: 1.1rem; margin-bottom: 2rem; color: #666; text-align: center;">
+        Nous offrons une gamme complète de services technologiques adaptés à vos besoins spécifiques.
+    </p>
+    
+    <div class="services-grid">
+        <div class="service-card">
+            <i class="fas fa-code service-icon"></i>
+            <h3>Développement Web</h3>
+            <p>Applications web sur mesure, sites responsive et plateformes e-commerce performantes utilisant les dernières technologies.</p>
+        </div>
+        <div class="service-card">
+            <i class="fas fa-brain service-icon"></i>
+            <h3>Intelligence Artificielle</h3>
+            <p>Intégration d'IA, apprentissage automatique, chatbots intelligents et solutions d'automatisation avancées.</p>
+        </div>
+        <div class="service-card">
+            <i class="fas fa-microchip service-icon"></i>
+            <h3>Systèmes Embarqués</h3>
+            <p>Conception et développement de systèmes embarqués IoT, électronique programmable et solutions connectées.</p>
+        </div>
+        <div class="service-card">
+            <i class="fas fa-paint-brush service-icon"></i>
+            <h3>Design UI/UX</h3>
+            <p>Interfaces utilisateur intuitives, expérience utilisateur optimisée et design moderne centré sur l'utilisateur.</p>
+        </div>
+    </div>
+</section>
+
+<section id="about">
+    <h2><i class="fas fa-users"></i> À Propos de Nous</h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center; margin-top: 2rem;">
+        <div>
+            <p style="font-size: 1.1rem; margin-bottom: 1.5rem;">
+                Nous sommes une équipe passionnée de développeurs, spécialistes en IA et ingénieurs 
+                dédiés à la création de solutions impactantes. Avec des années d'expérience et un 
+                focus sur l'innovation, nous visons à livrer des projets de haute qualité adaptés 
+                aux besoins de nos clients.
+            </p>
+            <h3 style="color: #004aad; margin: 2rem 0 1rem;">Nos Valeurs</h3>
+            <ul style="list-style: none; padding: 0;">
+                <li style="margin: 1rem 0;"><i class="fas fa-check-circle" style="color: #ff6600; margin-right: 0.5rem;"></i> Innovation constante</li>
+                <li style="margin: 1rem 0;"><i class="fas fa-check-circle" style="color: #ff6600; margin-right: 0.5rem;"></i> Excellence technique</li>
+                <li style="margin: 1rem 0;"><i class="fas fa-check-circle" style="color: #ff6600; margin-right: 0.5rem;"></i> Satisfaction client</li>
+                <li style="margin: 1rem 0;"><i class="fas fa-check-circle" style="color: #ff6600; margin-right: 0.5rem;"></i> Collaboration transparente</li>
+            </ul>
+        </div>
+        <div style="text-align: center;">
+            <div style="width: 200px; height: 200px; background: linear-gradient(45deg, #004aad, #ff6600); border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 4rem; color: white; box-shadow: 0 15px 35px rgba(0,74,173,0.3);">
+                <i class="fas fa-lightbulb"></i>
+            </div>
+            <h3 style="color: #004aad; margin: 1.5rem 0;">Équipe Créative</h3>
+            <p>Des professionnels expérimentés au service de votre réussite digitale.</p>
+        </div>
+    </div>
+</section>
+
+<section id="contact">
+    <h2><i class="fas fa-envelope"></i> Contactez-Nous</h2>
+    <p style="text-align: center; font-size: 1.1rem; margin-bottom: 2rem; color: #666;">
+        Prêt à démarrer votre projet ? Envoyez-nous un message et discutons de vos besoins !
+    </p>
+    
+    <div class="contact-form">
+        <form id="contactForm">
+            <div class="form-group">
+                <input type="text" name="name" placeholder=" " required>
+                <label>Votre Nom</label>
+            </div>
+            <div class="form-group">
+                <input type="email" name="email" placeholder=" " required>
+                <label>Votre Email</label>
+            </div>
+            <div class="form-group">
+                <textarea name="message" rows="5" placeholder=" " required></textarea>
+                <label>Votre Message</label>
+            </div>
+            <button type="submit" class="submit-btn">
+                <i class="fas fa-paper-plane"></i> Envoyer le Message
+            </button>
+        </form>
+        <div class="success-message" id="successMsg">
+            <i class="fas fa-check-circle"></i> Votre message a été envoyé avec succès ! Nous vous répondrons rapidement.
+        </div>
+    </div>
+
+    <div class="social-links">
+        <a href="#" class="social-link facebook"><i class="fab fa-facebook-f"></i></a>
+        <a href="#" class="social-link linkedin"><i class="fab fa-linkedin-in"></i></a>
+        <a href="#" class="social-link twitter"><i class="fab fa-twitter"></i></a>
+        <a href="#" class="social-link instagram"><i class="fab fa-instagram"></i></a>
+    </div>
+</section>
+
+<script>
+    function showSection(id) {
+        // Enlever la classe active de tous les boutons de navigation
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        
+        // Enlever la classe active de toutes les sections
+        document.querySelectorAll('section').forEach(sec => sec.classList.remove('active'));
+        
+        // Activer la section demandée
+        document.getElementById(id).classList.add('active');
+        
+        // Activer le bouton correspondant
+        event.target.classList.add('active');
+    }
+
+    // Gestion du formulaire de contact
+    document.getElementById('contactForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Animation du bouton pendant l'envoi
+        const submitBtn = this.querySelector('.submit-btn');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi en cours...';
+        submitBtn.disabled = true;
+        
+        // Simulation d'envoi (remplacer par votre endpoint Flask)
+        setTimeout(() => {
+            // Afficher le message de succès
+            document.getElementById('successMsg').style.display = 'block';
+            
+            // Réinitialiser le formulaire
+            this.reset();
+            
+            // Restaurer le bouton
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            
+            // Cacher le message après 5 secondes
+            setTimeout(() => {
+                document.getElementById('successMsg').style.display = 'none';
+            }, 5000);
+        }, 2000);
+        
+        /* Pour une vraie intégration Flask, remplacez le setTimeout ci-dessus par :
+        fetch('/send_message', {
+            method: 'POST',
+            body: new FormData(this)
+        }).then(res => {
+            if (res.ok) {
+                document.getElementById('successMsg').style.display = 'block';
+                this.reset();
+            }
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }).catch(() => {
+            alert('Erreur lors de l\'envoi du message');
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
+        */
+    });
+
+    // Animation au défilement
+    function animateOnScroll() {
+        const elements = document.querySelectorAll('.service-card, .stat-card');
+        elements.forEach(el => {
+            const elementTop = el.getBoundingClientRect().top;
+            const elementVisible = 150;
+            
+            if (elementTop < window.innerHeight - elementVisible) {
+                el.classList.add('fade-in');
+            }
+        });
+    }
+
+    window.addEventListener('scroll', animateOnScroll);
+    
+    // Animation initiale
+    window.addEventListener('load', () => {
+        animateOnScroll();
+        
+        // Ajouter l'effet bounce au logo après le chargement
+        setTimeout(() => {
+            document.querySelector('.logo').classList.add('bounce');
+        }, 1000);
+    });
+</script>
+
+</body>
+</html>
