@@ -249,6 +249,45 @@
             font-weight: 600;
         }
 
+        /* Video container with modern styling */
+        .video-container {
+            margin: 3rem 0;
+            text-align: center;
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            background: #000;
+        }
+
+        .video-wrapper iframe {
+            width: 100%;
+            height: 450px;
+            border: none;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(0,74,173,0.1), rgba(255,102,0,0.1));
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .video-wrapper:hover .video-overlay {
+            opacity: 1;
+        }
+
         /* Services avec cartes modernes */
         .services-grid {
             display: grid;
@@ -432,6 +471,7 @@
             nav { padding: 0; }
             nav button { padding: 0.8rem 1rem; font-size: 0.9rem; }
             section { margin: 1rem; padding: 1.5rem; }
+            .video-wrapper iframe { height: 250px; }
         }
 
         /* Animations supplémentaires */
@@ -510,12 +550,14 @@
             </div>
         </div>
 
-        <div style="margin: 3rem 0; text-align: center;">
+        <div class="video-container">
             <h3 style="color: #004aad; margin-bottom: 1rem;">Découvrez Notre Travail</h3>
-            <video controls style="width: 100%; max-width: 800px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
-                <source src="static/web.mp4" type="video/mp4">
-                Votre navigateur ne supporte pas la lecture vidéo.
-            </video>
+            <div class="video-wrapper">
+                <iframe src="https://drive.google.com/file/d/11zlE86ekUpUR8N782KFGdf1AaDVyEVBJ/preview" 
+                        allow="autoplay" allowfullscreen>
+                </iframe>
+                <div class="video-overlay"></div>
+            </div>
         </div>
     </div>
 </section>
