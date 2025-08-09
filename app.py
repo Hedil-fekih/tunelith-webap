@@ -16,24 +16,29 @@ ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', '')
 
 def init_database():
     """Initialise la base de données SQLite"""
-    conn = sqlite3.connect('messages.db')
-    cursor = conn.cursor()
-    
-    # Créer la table messages si elle n'existe pas
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT NOT NULL,
-            message TEXT NOT NULL,
-            timestamp TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    conn.commit()
-    conn.close()
-    print("✅ Base de données initialisée")
+    try:
+        conn = sqlite3.connect('messages.db')
+        cursor = conn.cursor()
+        
+        # Créer la table messages si elle n'existe pas
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                message TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        conn.commit()
+        conn.close()
+        print("✅ Base de données initialisée")
+        return True
+    except Exception as e:
+        print(f"❌ Erreur initialisation BDD: {e}")
+        return False
 
 def save_message_to_db(name, email, message, timestamp):
     """Sauvegarde un message dans la base de données"""
@@ -59,6 +64,10 @@ def save_message_to_db(name, email, message, timestamp):
 def get_messages_from_db():
     """Récupère tous les messages de la base de données"""
     try:
+        # Initialiser la BDD si elle n'existe pas
+        if not os.path.exists('messages.db'):
+            init_database()
+            
         conn = sqlite3.connect('messages.db')
         cursor = conn.cursor()
         
@@ -112,12 +121,6 @@ def send_notification_email(message_data):
                         <strong>💬 Message:</strong><br>
                         {message_data['message']}
                     </div>
-                    <p style="margin-top: 20px;">
-                        <a href="https://votre-app.onrender.com/messages" 
-                           style="background: #ff6600; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                           Voir tous les messages
-                        </a>
-                    </p>
                 </div>
             </div>
         </body>
@@ -141,10 +144,12 @@ def send_notification_email(message_data):
 
 @app.route('/')
 def home():
+    """Page d'accueil principale"""
     return render_template('index.html')
 
 @app.route('/send_message', methods=['POST'])
 def send_message():
+    """Traitement des messages du formulaire de contact"""
     try:
         name = request.form.get('name', '').strip()
         email = request.form.get('email', '').strip()
@@ -162,6 +167,10 @@ def send_message():
             return jsonify({'error': 'Adresse email invalide'}), 400
         
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Initialiser la BDD si nécessaire
+        if not os.path.exists('messages.db'):
+            init_database()
         
         # Sauvegarder en base de données
         message_id = save_message_to_db(name, email, message, timestamp)
@@ -222,11 +231,21 @@ def api_messages():
 def test_database():
     """Route de test pour vérifier la base de données"""
     try:
+        # S'assurer que la BDD existe
+        if not os.path.exists('messages.db'):
+            init_result = init_database()
+            if not init_result:
+                return jsonify({
+                    'database_status': 'ERROR',
+                    'error': 'Impossible de créer la base de données'
+                }), 500
+        
         messages = get_messages_from_db()
         return jsonify({
             'database_status': 'OK',
             'messages_count': len(messages),
-            'messages': messages
+            'database_exists': os.path.exists('messages.db'),
+            'recent_messages': messages[:3] if messages else []
         })
     except Exception as e:
         return jsonify({
@@ -243,7 +262,9 @@ def health_check():
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
             'messages_in_db': messages_count,
-            'version': '2.0'
+            'database_exists': os.path.exists('messages.db'),
+            'email_configured': bool(EMAIL_USER and EMAIL_PASS and ADMIN_EMAIL),
+            'version': '2.1'
         })
     except Exception as e:
         return jsonify({
@@ -251,13 +272,33 @@ def health_check():
             'error': str(e)
         }), 500
 
-# Initialiser la base de données au démarrage
-@app.before_first_request
-def before_first_request():
+@app.route('/debug')
+def debug_info():
+    """Informations de debug"""
+    try:
+        return jsonify({
+            'python_version': os.sys.version,
+            'current_directory': os.getcwd(),
+            'files_in_directory': [f for f in os.listdir('.') if not f.startswith('.')],
+            'database_exists': os.path.exists('messages.db'),
+            'environment_vars': {
+                'EMAIL_USER': bool(EMAIL_USER),
+                'EMAIL_PASS': bool(EMAIL_PASS),
+                'ADMIN_EMAIL': bool(ADMIN_EMAIL),
+                'PORT': os.environ.get('PORT', 'Not set'),
+                'RENDER': os.environ.get('RENDER', 'Not on Render')
+            },
+            'flask_version': '2.3+'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Initialiser la base de données au démarrage de l'application
+with app.app_context():
     init_database()
 
 if __name__ == "__main__":
-    # Initialiser la BDD en mode développement
+    # Initialiser la BDD en mode développement local
     init_database()
     
     port = int(os.environ.get("PORT", 5000))
@@ -266,5 +307,6 @@ if __name__ == "__main__":
     print(f"🚀 Démarrage Tunelith avec base de données SQLite")
     print(f"📊 URL de test: http://localhost:{port}/test_db")
     print(f"📧 Page messages: http://localhost:{port}/messages")
+    print(f"🔍 Debug info: http://localhost:{port}/debug")
     
     app.run(host="0.0.0.0", port=port, debug=debug_mode)
