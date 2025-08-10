@@ -94,7 +94,6 @@
             padding: 1rem;
             border-radius: 8px;
             border-left: 4px solid #ff6600;
-            white-space: pre-wrap;
         }
         
         .back-button {
@@ -125,27 +124,6 @@
             color: #e2e8f0;
             margin-bottom: 1rem;
         }
-
-        .message-id {
-            background: #004aad;
-            color: white;
-            padding: 0.2rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            margin-left: 1rem;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 1rem;
-            }
-            
-            .message-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
-            }
-        }
     </style>
 </head>
 <body>
@@ -166,8 +144,7 @@
             </div>
             <div class="stat-card">
                 <div class="stat-number">
-                    {% set today = moment().format('YYYY-MM-DD') if moment else '2025-08-10' %}
-                    {{ messages | selectattr('timestamp', 'containing', today) | list | length }}
+                    {{ messages|selectattr('timestamp', 'match', '.*' + (moment().format('YYYY-MM-DD') if moment else '2024'))|list|length }}
                 </div>
                 <div>Aujourd'hui</div>
             </div>
@@ -182,7 +159,6 @@
                     <div class="message-header">
                         <div class="sender-info">
                             <i class="fas fa-user"></i> {{ message.name }}
-                            <span class="message-id">#{{ message.id }}</span>
                             <br>
                             <small><i class="fas fa-envelope"></i> {{ message.email }}</small>
                         </div>
@@ -190,7 +166,9 @@
                             <i class="fas fa-clock"></i> {{ message.timestamp }}
                         </div>
                     </div>
-                    <div class="message-content">{{ message.message }}</div>
+                    <div class="message-content">
+                        {{ message.message }}
+                    </div>
                 </div>
                 {% endfor %}
             {% else %}
