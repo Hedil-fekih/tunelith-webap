@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, render_template_string
 from datetime import datetime
 import smtplib
 from email.mime.text import MIMEText
@@ -13,6 +13,256 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback-secret-key')
 EMAIL_USER = os.environ.get('EMAIL_USER', '')
 EMAIL_PASS = os.environ.get('EMAIL_PASS', '')
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', '')
+
+# Template HTML pour la page principale (si pas de fichier template)
+INDEX_HTML = """
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tunelith - Innovation Technologique</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Votre CSS ici -->
+</head>
+<body>
+    <!-- Votre contenu HTML ici -->
+</body>
+</html>
+"""
+
+# Template pour la page d'administration des messages
+MESSAGES_ADMIN_HTML = """
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - Tunelith Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            margin: 0;
+            padding: 2rem;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #004aad, #ff6600);
+            color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0,74,173,0.3);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #004aad;
+        }
+        
+        .messages-container {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .message-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .message-item:hover {
+            border-color: #ff6600;
+            box-shadow: 0 5px 20px rgba(255,102,0,0.1);
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f1f5f9;
+        }
+        
+        .sender-info {
+            font-weight: bold;
+            color: #004aad;
+        }
+        
+        .timestamp {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .message-content {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #ff6600;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        
+        .back-button {
+            background: linear-gradient(45deg, #004aad, #ff6600);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 2rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,102,0,0.4);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .no-messages {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+        
+        .no-messages i {
+            font-size: 4rem;
+            color: #e2e8f0;
+            margin-bottom: 1rem;
+        }
+
+        .refresh-button {
+            background: linear-gradient(45deg, #22c55e, #16a34a);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-left: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(34,197,94,0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-button">
+            <i class="fas fa-arrow-left"></i> Retour au site
+        </a>
+        <button onclick="location.reload()" class="refresh-button">
+            <i class="fas fa-sync-alt"></i> Actualiser
+        </button>
+        
+        <div class="header">
+            <h1><i class="fas fa-envelope"></i> Administration des Messages</h1>
+            <p>Gestion des messages reçus via le formulaire de contact</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number">{{ messages|length }}</div>
+                <div>Messages Total</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">
+                    {% set today = moment().strftime('%Y-%m-%d') if moment else '2024-12-' %}
+                    {{ messages|selectattr('timestamp', 'match', '.*' + today + '.*')|list|length }}
+                </div>
+                <div>Aujourd'hui</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">
+                    {% if messages %}
+                        {{ messages[0].timestamp.split(' ')[0] if messages[0].timestamp else 'N/A' }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+                <div>Dernier message</div>
+            </div>
+        </div>
+        
+        <div class="messages-container">
+            <h2><i class="fas fa-comments"></i> Messages Reçus ({{ messages|length }})</h2>
+            
+            {% if messages %}
+                {% for message in messages %}
+                <div class="message-item">
+                    <div class="message-header">
+                        <div class="sender-info">
+                            <i class="fas fa-user"></i> {{ message.name }}
+                            <br>
+                            <small><i class="fas fa-envelope"></i> {{ message.email }}</small>
+                        </div>
+                        <div class="timestamp">
+                            <i class="fas fa-clock"></i> {{ message.timestamp }}
+                        </div>
+                    </div>
+                    <div class="message-content">
+                        {{ message.message }}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="no-messages">
+                    <i class="fas fa-inbox"></i>
+                    <h3>Aucun message pour le moment</h3>
+                    <p>Les messages envoyés via le formulaire de contact apparaîtront ici.</p>
+                    <p style="margin-top: 1rem; font-size: 0.9rem; color: #888;">
+                        <strong>Debug:</strong> Vérifiez que le formulaire envoie bien les données à /send_message
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh toutes les 30 secondes
+        setInterval(() => {
+            location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>
+"""
 
 def init_database():
     """Initialise la base de données SQLite"""
@@ -34,7 +284,7 @@ def init_database():
         
         conn.commit()
         conn.close()
-        print("✅ Base de données initialisée")
+        print("✅ Base de données initialisée avec succès")
         return True
     except Exception as e:
         print(f"❌ Erreur initialisation BDD: {e}")
@@ -55,7 +305,7 @@ def save_message_to_db(name, email, message, timestamp):
         message_id = cursor.lastrowid
         conn.close()
         
-        print(f"✅ Message {message_id} sauvegardé en base de données")
+        print(f"✅ Message {message_id} sauvegardé: {name} - {email}")
         return message_id
     except Exception as e:
         print(f"❌ Erreur lors de la sauvegarde en BDD: {e}")
@@ -66,6 +316,7 @@ def get_messages_from_db():
     try:
         # Initialiser la BDD si elle n'existe pas
         if not os.path.exists('messages.db'):
+            print("📂 Création de la base de données...")
             init_database()
             
         conn = sqlite3.connect('messages.db')
@@ -89,6 +340,7 @@ def get_messages_from_db():
             })
         
         conn.close()
+        print(f"📊 {len(messages)} messages récupérés de la base")
         return messages
     except Exception as e:
         print(f"❌ Erreur lors de la lecture BDD: {e}")
@@ -97,7 +349,7 @@ def get_messages_from_db():
 def send_notification_email(message_data):
     """Envoie une notification email"""
     if not all([EMAIL_USER, EMAIL_PASS, ADMIN_EMAIL]):
-        print("⚠️ Configuration email manquante")
+        print("⚠️ Configuration email manquante - pas d'envoi d'email")
         return False
     
     try:
@@ -119,7 +371,7 @@ def send_notification_email(message_data):
                     <p><strong>🕒 Date:</strong> {message_data['timestamp']}</p>
                     <div style="background: #e3f2fd; padding: 15px; border-radius: 5px; margin-top: 15px;">
                         <strong>💬 Message:</strong><br>
-                        {message_data['message']}
+                        {message_data['message'].replace('\n', '<br>')}
                     </div>
                 </div>
             </div>
@@ -135,48 +387,65 @@ def send_notification_email(message_data):
         server.sendmail(EMAIL_USER, ADMIN_EMAIL, msg.as_string())
         server.quit()
         
-        print(f"✅ Email envoyé à {ADMIN_EMAIL}")
+        print(f"✅ Email de notification envoyé à {ADMIN_EMAIL}")
         return True
         
     except Exception as e:
-        print(f"❌ Erreur email: {e}")
+        print(f"❌ Erreur lors de l'envoi d'email: {e}")
         return False
 
 @app.route('/')
 def home():
     """Page d'accueil principale"""
-    return render_template('index.html')
+    try:
+        # Essayer de charger le template depuis le dossier templates
+        return render_template('index.html')
+    except:
+        # Si le template n'existe pas, utiliser le HTML intégré
+        print("⚠️ Template index.html non trouvé, utilisation du HTML intégré")
+        return render_template_string(INDEX_HTML)
 
 @app.route('/send_message', methods=['POST'])
 def send_message():
     """Traitement des messages du formulaire de contact"""
     try:
+        # Récupérer les données du formulaire
         name = request.form.get('name', '').strip()
         email = request.form.get('email', '').strip()
         message = request.form.get('message', '').strip()
         
-        print(f"📨 Nouveau message reçu de {name} ({email})")
+        print(f"📨 NOUVEAU MESSAGE REÇU:")
+        print(f"   👤 Nom: {name}")
+        print(f"   📧 Email: {email}")
+        print(f"   💬 Message: {message[:100]}...")
         
-        # Validation
+        # Validation des données
         if not all([name, email, message]):
-            print("❌ Champs manquants")
-            return jsonify({'error': 'Tous les champs sont obligatoires'}), 400
+            error_msg = 'Tous les champs sont obligatoires'
+            print(f"❌ {error_msg}")
+            return jsonify({'success': False, 'error': error_msg}), 400
         
         if '@' not in email or '.' not in email:
-            print("❌ Email invalide")
-            return jsonify({'error': 'Adresse email invalide'}), 400
+            error_msg = 'Adresse email invalide'
+            print(f"❌ {error_msg}")
+            return jsonify({'success': False, 'error': error_msg}), 400
         
+        # Créer un timestamp
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"🕒 Timestamp: {timestamp}")
         
         # Initialiser la BDD si nécessaire
         if not os.path.exists('messages.db'):
-            init_database()
+            print("📂 Base de données non existante, création...")
+            init_result = init_database()
+            if not init_result:
+                return jsonify({'success': False, 'error': 'Erreur de base de données'}), 500
         
         # Sauvegarder en base de données
         message_id = save_message_to_db(name, email, message, timestamp)
         
         if message_id:
-            print(f"✅ Message {message_id} sauvegardé avec succès")
+            print(f"✅ Message sauvegardé avec l'ID: {message_id}")
             
             # Préparer les données pour la notification
             message_data = {
@@ -187,32 +456,53 @@ def send_message():
                 'timestamp': timestamp
             }
             
-            # Envoyer notification email
-            send_notification_email(message_data)
+            # Envoyer notification email (optionnel)
+            email_sent = send_notification_email(message_data)
+            
+            # Vérifier que le message est bien en base
+            messages = get_messages_from_db()
+            print(f"📊 Total de messages en base après sauvegarde: {len(messages)}")
             
             # Réponse de succès
-            if request.headers.get('Content-Type') == 'application/json':
-                return jsonify({'success': True, 'message': 'Message envoyé avec succès!', 'id': message_id})
+            response_data = {
+                'success': True, 
+                'message': 'Message envoyé avec succès!', 
+                'id': message_id,
+                'email_sent': email_sent,
+                'total_messages': len(messages)
+            }
+            
+            # Si c'est une requête AJAX, retourner JSON
+            if request.headers.get('Content-Type') == 'application/json' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify(response_data)
+            # Sinon, rediriger vers la page d'accueil
             else:
                 return redirect(url_for('home'))
+                
         else:
-            print("❌ Échec de la sauvegarde")
-            return jsonify({'error': 'Erreur lors de la sauvegarde'}), 500
+            error_msg = 'Erreur lors de la sauvegarde du message'
+            print(f"❌ {error_msg}")
+            return jsonify({'success': False, 'error': error_msg}), 500
             
     except Exception as e:
-        print(f"❌ Erreur générale: {e}")
-        return jsonify({'error': 'Erreur interne du serveur'}), 500
+        error_msg = f'Erreur interne du serveur: {str(e)}'
+        print(f"❌ {error_msg}")
+        return jsonify({'success': False, 'error': error_msg}), 500
 
 @app.route('/messages')
 def view_messages():
     """Page d'administration des messages"""
     try:
         messages = get_messages_from_db()
-        print(f"📋 {len(messages)} messages trouvés en base")
-        return render_template('messages.html', messages=messages)
+        print(f"📋 Page admin: {len(messages)} messages à afficher")
+        
+        # Utiliser le template intégré pour éviter les problèmes de fichiers
+        return render_template_string(MESSAGES_ADMIN_HTML, messages=messages)
+        
     except Exception as e:
-        print(f"❌ Erreur lors de l'affichage: {e}")
-        return f"Erreur lors du chargement des messages: {e}", 500
+        error_msg = f"Erreur lors du chargement des messages: {e}"
+        print(f"❌ {error_msg}")
+        return f"<h1>Erreur</h1><p>{error_msg}</p><a href='/'>Retour</a>", 500
 
 @app.route('/api/messages')
 def api_messages():
@@ -222,10 +512,11 @@ def api_messages():
         return jsonify({
             'success': True,
             'count': len(messages),
-            'messages': messages
+            'messages': messages,
+            'timestamp': datetime.now().isoformat()
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/test_db')
 def test_database():
@@ -233,6 +524,7 @@ def test_database():
     try:
         # S'assurer que la BDD existe
         if not os.path.exists('messages.db'):
+            print("📂 Création de la base de données pour le test...")
             init_result = init_database()
             if not init_result:
                 return jsonify({
@@ -241,17 +533,47 @@ def test_database():
                 }), 500
         
         messages = get_messages_from_db()
+        
         return jsonify({
             'database_status': 'OK',
             'messages_count': len(messages),
             'database_exists': os.path.exists('messages.db'),
-            'recent_messages': messages[:3] if messages else []
+            'database_path': os.path.abspath('messages.db'),
+            'recent_messages': messages[:3] if messages else [],
+            'all_messages': messages,  # Pour debug
+            'timestamp': datetime.now().isoformat()
         })
     except Exception as e:
         return jsonify({
             'database_status': 'ERROR',
             'error': str(e)
         }), 500
+
+@app.route('/add_test_message')
+def add_test_message():
+    """Ajouter un message de test"""
+    try:
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        message_id = save_message_to_db(
+            "Test User", 
+            "test@example.com", 
+            "Ceci est un message de test pour vérifier le fonctionnement de la base de données.", 
+            timestamp
+        )
+        
+        if message_id:
+            messages = get_messages_from_db()
+            return jsonify({
+                'success': True,
+                'message': 'Message de test ajouté',
+                'id': message_id,
+                'total_messages': len(messages)
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Échec de l\'ajout du message de test'}), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/health')
 def health_check():
@@ -264,7 +586,7 @@ def health_check():
             'messages_in_db': messages_count,
             'database_exists': os.path.exists('messages.db'),
             'email_configured': bool(EMAIL_USER and EMAIL_PASS and ADMIN_EMAIL),
-            'version': '2.1'
+            'version': '2.2-fixed'
         })
     except Exception as e:
         return jsonify({
@@ -274,13 +596,14 @@ def health_check():
 
 @app.route('/debug')
 def debug_info():
-    """Informations de debug"""
+    """Informations de debug détaillées"""
     try:
         return jsonify({
             'python_version': os.sys.version,
             'current_directory': os.getcwd(),
             'files_in_directory': [f for f in os.listdir('.') if not f.startswith('.')],
             'database_exists': os.path.exists('messages.db'),
+            'database_size': os.path.getsize('messages.db') if os.path.exists('messages.db') else 0,
             'environment_vars': {
                 'EMAIL_USER': bool(EMAIL_USER),
                 'EMAIL_PASS': bool(EMAIL_PASS),
@@ -288,25 +611,28 @@ def debug_info():
                 'PORT': os.environ.get('PORT', 'Not set'),
                 'RENDER': os.environ.get('RENDER', 'Not on Render')
             },
-            'flask_version': '2.3+'
+            'flask_version': '2.3+',
+            'messages_count': len(get_messages_from_db())
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Initialiser la base de données au démarrage de l'application
-with app.app_context():
-    init_database()
+# Initialiser la base de données au démarrage
+print("🚀 Initialisation de l'application Tunelith...")
+init_database()
 
 if __name__ == "__main__":
-    # Initialiser la BDD en mode développement local
+    # Initialisation supplémentaire en mode développement
+    print("🔧 Mode développement détecté")
     init_database()
     
     port = int(os.environ.get("PORT", 5000))
     debug_mode = os.environ.get("FLASK_ENV") == "development"
     
-    print(f"🚀 Démarrage Tunelith avec base de données SQLite")
-    print(f"📊 URL de test: http://localhost:{port}/test_db")
-    print(f"📧 Page messages: http://localhost:{port}/messages")
-    print(f"🔍 Debug info: http://localhost:{port}/debug")
+    print(f"🌐 Démarrage de Tunelith sur le port {port}")
+    print(f"📊 URL de test de la BDD: http://localhost:{port}/test_db")
+    print(f"📧 Page d'administration: http://localhost:{port}/messages")
+    print(f"🔍 Informations de debug: http://localhost:{port}/debug")
+    print(f"➕ Ajouter un message de test: http://localhost:{port}/add_test_message")
     
     app.run(host="0.0.0.0", port=port, debug=debug_mode)
