@@ -418,6 +418,12 @@
             box-shadow: 0 10px 25px rgba(255,102,0,0.4);
         }
 
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         /* Réseaux sociaux */
         .social-links {
             display: flex;
@@ -451,16 +457,24 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
 
-        /* Messages de succès */
-        .success-message {
-            background: linear-gradient(45deg, #22c55e, #16a34a);
-            color: white;
+        /* Messages de succès et d'erreur */
+        .success-message, .error-message {
             padding: 1rem;
             border-radius: 10px;
             margin-top: 1rem;
             text-align: center;
             display: none;
             animation: slideIn 0.5s ease-out;
+        }
+
+        .success-message {
+            background: linear-gradient(45deg, #22c55e, #16a34a);
+            color: white;
+        }
+
+        .error-message {
+            background: linear-gradient(45deg, #ef4444, #dc2626);
+            color: white;
         }
 
         /* Responsive */
@@ -627,7 +641,7 @@
     </p>
     
     <div class="contact-form">
-        <form id="contactForm">
+        <form id="contactForm" action="/send_message" method="POST">
             <div class="form-group">
                 <input type="text" name="name" placeholder=" " required>
                 <label>Votre Nom</label>
@@ -646,6 +660,9 @@
         </form>
         <div class="success-message" id="successMsg">
             <i class="fas fa-check-circle"></i> Votre message a été envoyé avec succès ! Nous vous répondrons rapidement.
+        </div>
+        <div class="error-message" id="errorMsg">
+            <i class="fas fa-exclamation-circle"></i> <span id="errorText">Erreur lors de l'envoi du message</span>
         </div>
     </div>
 
@@ -672,7 +689,7 @@
         event.target.classList.add('active');
     }
 
-    // Gestion du formulaire de contact
+    // Gestion du formulaire de contact - VERSION CORRIGÉE
     document.getElementById('contactForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -682,41 +699,55 @@
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi en cours...';
         submitBtn.disabled = true;
         
-        // Simulation d'envoi (remplacer par votre endpoint Flask)
-        setTimeout(() => {
-            // Afficher le message de succès
-            document.getElementById('successMsg').style.display = 'block';
+        // Masquer les messages précédents
+        document.getElementById('successMsg').style.display = 'none';
+        document.getElementById('errorMsg').style.display = 'none';
+        
+        // Envoyer les données au serveur Flask
+        fetch('/send_message', {
+            method: 'POST',
+            body: new FormData(this),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.json();
+            }
+            throw new Error('Erreur réseau');
+        })
+        .then(data => {
+            if (data.success) {
+                // Afficher le message de succès
+                document.getElementById('successMsg').style.display = 'block';
+                
+                // Réinitialiser le formulaire
+                this.reset();
+                
+                // Cacher le message après 5 secondes
+                setTimeout(() => {
+                    document.getElementById('successMsg').style.display = 'none';
+                }, 5000);
+            } else {
+                throw new Error(data.error || 'Erreur inconnue');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            document.getElementById('errorText').textContent = error.message || 'Erreur lors de l\'envoi du message';
+            document.getElementById('errorMsg').style.display = 'block';
             
-            // Réinitialiser le formulaire
-            this.reset();
-            
+            // Cacher le message d'erreur après 5 secondes
+            setTimeout(() => {
+                document.getElementById('errorMsg').style.display = 'none';
+            }, 5000);
+        })
+        .finally(() => {
             // Restaurer le bouton
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
-            
-            // Cacher le message après 5 secondes
-            setTimeout(() => {
-                document.getElementById('successMsg').style.display = 'none';
-            }, 5000);
-        }, 2000);
-        
-        /* Pour une vraie intégration Flask, remplacez le setTimeout ci-dessus par :
-        fetch('/send_message', {
-            method: 'POST',
-            body: new FormData(this)
-        }).then(res => {
-            if (res.ok) {
-                document.getElementById('successMsg').style.display = 'block';
-                this.reset();
-            }
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-        }).catch(() => {
-            alert('Erreur lors de l\'envoi du message');
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
         });
-        */
     });
 
     // Animation au défilement
