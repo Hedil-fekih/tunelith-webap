@@ -14,22 +14,10 @@ EMAIL_USER = os.environ.get('EMAIL_USER', '')
 EMAIL_PASS = os.environ.get('EMAIL_PASS', '')
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', '')
 
-def get_db_path():
-    """Obtenir le chemin de la base de données selon l'environnement"""
-    if os.environ.get('RENDER'):
-        # Sur Render, utiliser le répertoire /opt/render/project/src
-        return '/opt/render/project/src/messages.db'
-    else:
-        # En local, utiliser le répertoire courant
-        return 'messages.db'
-
 def init_database():
     """Initialise la base de données SQLite"""
     try:
-        db_path = get_db_path()
-        print(f"🔧 Initialisation BDD: {db_path}")
-        
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect('messages.db')
         cursor = conn.cursor()
         
         # Créer la table messages si elle n'existe pas
@@ -46,7 +34,7 @@ def init_database():
         
         conn.commit()
         conn.close()
-        print("✅ Base de données initialisée avec succès")
+        print("✅ Base de données initialisée")
         return True
     except Exception as e:
         print(f"❌ Erreur initialisation BDD: {e}")
@@ -55,8 +43,7 @@ def init_database():
 def save_message_to_db(name, email, message, timestamp):
     """Sauvegarde un message dans la base de données"""
     try:
-        db_path = get_db_path()
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect('messages.db')
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -77,14 +64,11 @@ def save_message_to_db(name, email, message, timestamp):
 def get_messages_from_db():
     """Récupère tous les messages de la base de données"""
     try:
-        db_path = get_db_path()
-        
         # Initialiser la BDD si elle n'existe pas
-        if not os.path.exists(db_path):
-            print("🔧 BDD n'existe pas, initialisation...")
+        if not os.path.exists('messages.db'):
             init_database()
             
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect('messages.db')
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -105,7 +89,6 @@ def get_messages_from_db():
             })
         
         conn.close()
-        print(f"📊 {len(messages)} messages récupérés de la BDD")
         return messages
     except Exception as e:
         print(f"❌ Erreur lors de la lecture BDD: {e}")
@@ -114,7 +97,7 @@ def get_messages_from_db():
 def send_notification_email(message_data):
     """Envoie une notification email"""
     if not all([EMAIL_USER, EMAIL_PASS, ADMIN_EMAIL]):
-        print("⚠️ Configuration email manquante, email non envoyé")
+        print("⚠️ Configuration email manquante")
         return False
     
     try:
@@ -177,21 +160,17 @@ def send_message():
         # Validation
         if not all([name, email, message]):
             print("❌ Champs manquants")
-            return jsonify({'error': 'Tous les champs sont obligatoires', 'success': False}), 400
+            return jsonify({'error': 'Tous les champs sont obligatoires'}), 400
         
         if '@' not in email or '.' not in email:
             print("❌ Email invalide")
-            return jsonify({'error': 'Adresse email invalide', 'success': False}), 400
+            return jsonify({'error': 'Adresse email invalide'}), 400
         
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         # Initialiser la BDD si nécessaire
-        db_path = get_db_path()
-        if not os.path.exists(db_path):
-            print("🔧 Initialisation de la BDD...")
-            init_result = init_database()
-            if not init_result:
-                return jsonify({'error': 'Erreur d\'initialisation de la base de données', 'success': False}), 500
+        if not os.path.exists('messages.db'):
+            init_database()
         
         # Sauvegarder en base de données
         message_id = save_message_to_db(name, email, message, timestamp)
@@ -208,37 +187,28 @@ def send_message():
                 'timestamp': timestamp
             }
             
-            # Envoyer notification email (non bloquant si ça échoue)
-            email_sent = send_notification_email(message_data)
+            # Envoyer notification email
+            send_notification_email(message_data)
             
             # Réponse de succès
-            response_data = {
-                'success': True, 
-                'message': 'Message envoyé avec succès!', 
-                'id': message_id,
-                'email_sent': email_sent
-            }
-            
-            # Si c'est une requête AJAX, retourner JSON
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify(response_data)
+            if request.headers.get('Content-Type') == 'application/json':
+                return jsonify({'success': True, 'message': 'Message envoyé avec succès!', 'id': message_id})
             else:
-                # Sinon, rediriger vers la page d'accueil
                 return redirect(url_for('home'))
         else:
             print("❌ Échec de la sauvegarde")
-            return jsonify({'error': 'Erreur lors de la sauvegarde', 'success': False}), 500
+            return jsonify({'error': 'Erreur lors de la sauvegarde'}), 500
             
     except Exception as e:
         print(f"❌ Erreur générale: {e}")
-        return jsonify({'error': 'Erreur interne du serveur', 'success': False}), 500
+        return jsonify({'error': 'Erreur interne du serveur'}), 500
 
 @app.route('/messages')
 def view_messages():
     """Page d'administration des messages"""
     try:
         messages = get_messages_from_db()
-        print(f"📋 Affichage de {len(messages)} messages")
+        print(f"📋 {len(messages)} messages trouvés en base")
         return render_template('messages.html', messages=messages)
     except Exception as e:
         print(f"❌ Erreur lors de l'affichage: {e}")
@@ -255,39 +225,32 @@ def api_messages():
             'messages': messages
         })
     except Exception as e:
-        return jsonify({'error': str(e), 'success': False}), 500
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/test_db')
 def test_database():
     """Route de test pour vérifier la base de données"""
     try:
-        db_path = get_db_path()
-        
         # S'assurer que la BDD existe
-        if not os.path.exists(db_path):
-            print("🔧 BDD n'existe pas, création...")
+        if not os.path.exists('messages.db'):
             init_result = init_database()
             if not init_result:
                 return jsonify({
                     'database_status': 'ERROR',
-                    'error': 'Impossible de créer la base de données',
-                    'db_path': db_path
+                    'error': 'Impossible de créer la base de données'
                 }), 500
         
         messages = get_messages_from_db()
         return jsonify({
             'database_status': 'OK',
             'messages_count': len(messages),
-            'database_exists': os.path.exists(db_path),
-            'db_path': db_path,
-            'environment': 'Render' if os.environ.get('RENDER') else 'Local',
+            'database_exists': os.path.exists('messages.db'),
             'recent_messages': messages[:3] if messages else []
         })
     except Exception as e:
         return jsonify({
             'database_status': 'ERROR',
-            'error': str(e),
-            'db_path': get_db_path()
+            'error': str(e)
         }), 500
 
 @app.route('/health')
@@ -295,17 +258,13 @@ def health_check():
     """Contrôle de santé avec info base de données"""
     try:
         messages_count = len(get_messages_from_db())
-        db_path = get_db_path()
-        
         return jsonify({
             'status': 'healthy',
             'timestamp': datetime.now().isoformat(),
             'messages_in_db': messages_count,
-            'database_exists': os.path.exists(db_path),
-            'database_path': db_path,
+            'database_exists': os.path.exists('messages.db'),
             'email_configured': bool(EMAIL_USER and EMAIL_PASS and ADMIN_EMAIL),
-            'environment': 'Render' if os.environ.get('RENDER') else 'Local',
-            'version': '2.2'
+            'version': '2.1'
         })
     except Exception as e:
         return jsonify({
@@ -317,15 +276,11 @@ def health_check():
 def debug_info():
     """Informations de debug"""
     try:
-        db_path = get_db_path()
-        current_dir = os.getcwd()
-        
         return jsonify({
             'python_version': os.sys.version,
-            'current_directory': current_dir,
+            'current_directory': os.getcwd(),
             'files_in_directory': [f for f in os.listdir('.') if not f.startswith('.')],
-            'database_exists': os.path.exists(db_path),
-            'database_path': db_path,
+            'database_exists': os.path.exists('messages.db'),
             'environment_vars': {
                 'EMAIL_USER': bool(EMAIL_USER),
                 'EMAIL_PASS': bool(EMAIL_PASS),
@@ -333,57 +288,25 @@ def debug_info():
                 'PORT': os.environ.get('PORT', 'Not set'),
                 'RENDER': os.environ.get('RENDER', 'Not on Render')
             },
-            'flask_version': '2.3+',
-            'writable_directories': check_writable_dirs()
+            'flask_version': '2.3+'
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-def check_writable_dirs():
-    """Vérifier les répertoires où on peut écrire"""
-    test_dirs = ['.', '/tmp', '/opt/render/project/src']
-    writable = {}
-    
-    for dir_path in test_dirs:
-        try:
-            if os.path.exists(dir_path):
-                test_file = os.path.join(dir_path, 'test_write.tmp')
-                with open(test_file, 'w') as f:
-                    f.write('test')
-                os.remove(test_file)
-                writable[dir_path] = True
-            else:
-                writable[dir_path] = False
-        except:
-            writable[dir_path] = False
-    
-    return writable
-
-# Initialiser la base de données au démarrage
-try:
-    print("🚀 Initialisation de l'application Tunelith...")
+# Initialiser la base de données au démarrage de l'application
+with app.app_context():
     init_database()
-    print("✅ Application prête!")
-except Exception as e:
-    print(f"❌ Erreur lors de l'initialisation: {e}")
 
 if __name__ == "__main__":
+    # Initialiser la BDD en mode développement local
+    init_database()
+    
     port = int(os.environ.get("PORT", 5000))
     debug_mode = os.environ.get("FLASK_ENV") == "development"
     
-    print(f"🚀 Démarrage Tunelith")
-    print(f"📊 Environment: {'Render' if os.environ.get('RENDER') else 'Local'}")
-    print(f"📁 Database path: {get_db_path()}")
-    print(f"🌐 Port: {port}")
-    print(f"🔍 Debug mode: {debug_mode}")
-    print(f"📧 Email configured: {bool(EMAIL_USER and EMAIL_PASS and ADMIN_EMAIL)}")
-    
-    if not os.environ.get('RENDER'):
-        print(f"📊 Test URLs:")
-        print(f"   - Site: http://localhost:{port}/")
-        print(f"   - Messages: http://localhost:{port}/messages")
-        print(f"   - Test DB: http://localhost:{port}/test_db")
-        print(f"   - Health: http://localhost:{port}/health")
-        print(f"   - Debug: http://localhost:{port}/debug")
+    print(f"🚀 Démarrage Tunelith avec base de données SQLite")
+    print(f"📊 URL de test: http://localhost:{port}/test_db")
+    print(f"📧 Page messages: http://localhost:{port}/messages")
+    print(f"🔍 Debug info: http://localhost:{port}/debug")
     
     app.run(host="0.0.0.0", port=port, debug=debug_mode)
