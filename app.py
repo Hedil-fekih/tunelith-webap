@@ -9,12 +9,12 @@ from email.mime.multipart import MIMEMultipart
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'fallback-secret-key')
 
-# Configuration email
-EMAIL_USER = os.environ.get('EMAIL_USER', '')
-EMAIL_PASS = os.environ.get('EMAIL_PASS', '')
-ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', '')
+# Configuration email - MODIFIÉE
+EMAIL_USER = os.environ.get('EMAIL_USER', 'hedilfekih15@gmail.com')  # Votre email
+EMAIL_PASS = os.environ.get('EMAIL_PASS', '')  # Mot de passe d'application Gmail
+ADMIN_EMAIL = 'hedilfekih15@gmail.com'  # Email de destination
 
-# Template HTML pour la page principale (si pas de fichier template)
+# Template HTML pour la page principale
 INDEX_HTML = """
 <!DOCTYPE html>
 <html lang="fr">
@@ -180,6 +180,25 @@ MESSAGES_ADMIN_HTML = """
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(34,197,94,0.4);
         }
+
+        .email-status {
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .email-sent {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .email-failed {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
     </style>
 </head>
 <body>
@@ -231,6 +250,15 @@ MESSAGES_ADMIN_HTML = """
                             <i class="fas fa-user"></i> {{ message.name }}
                             <br>
                             <small><i class="fas fa-envelope"></i> {{ message.email }}</small>
+                            {% if message.get('email_sent') %}
+                                <div class="email-status email-sent">
+                                    <i class="fas fa-check"></i> Email envoyé
+                                </div>
+                            {% else %}
+                                <div class="email-status email-failed">
+                                    <i class="fas fa-times"></i> Email non envoyé
+                                </div>
+                            {% endif %}
                         </div>
                         <div class="timestamp">
                             <i class="fas fa-clock"></i> {{ message.timestamp }}
@@ -270,7 +298,7 @@ def init_database():
         conn = sqlite3.connect('messages.db')
         cursor = conn.cursor()
         
-        # Créer la table messages si elle n'existe pas
+        # Créer la table messages avec une colonne pour le statut email
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -278,6 +306,7 @@ def init_database():
                 email TEXT NOT NULL,
                 message TEXT NOT NULL,
                 timestamp TEXT NOT NULL,
+                email_sent BOOLEAN DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
@@ -290,22 +319,22 @@ def init_database():
         print(f"❌ Erreur initialisation BDD: {e}")
         return False
 
-def save_message_to_db(name, email, message, timestamp):
+def save_message_to_db(name, email, message, timestamp, email_sent=False):
     """Sauvegarde un message dans la base de données"""
     try:
         conn = sqlite3.connect('messages.db')
         cursor = conn.cursor()
         
         cursor.execute('''
-            INSERT INTO messages (name, email, message, timestamp)
-            VALUES (?, ?, ?, ?)
-        ''', (name, email, message, timestamp))
+            INSERT INTO messages (name, email, message, timestamp, email_sent)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (name, email, message, timestamp, email_sent))
         
         conn.commit()
         message_id = cursor.lastrowid
         conn.close()
         
-        print(f"✅ Message {message_id} sauvegardé: {name} - {email}")
+        print(f"✅ Message {message_id} sauvegardé: {name} - {email} (Email: {'✓' if email_sent else '✗'})")
         return message_id
     except Exception as e:
         print(f"❌ Erreur lors de la sauvegarde en BDD: {e}")
@@ -314,7 +343,6 @@ def save_message_to_db(name, email, message, timestamp):
 def get_messages_from_db():
     """Récupère tous les messages de la base de données"""
     try:
-        # Initialiser la BDD si elle n'existe pas
         if not os.path.exists('messages.db'):
             print("📂 Création de la base de données...")
             init_database()
@@ -323,7 +351,7 @@ def get_messages_from_db():
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT id, name, email, message, timestamp, created_at
+            SELECT id, name, email, message, timestamp, email_sent, created_at
             FROM messages
             ORDER BY created_at DESC
         ''')
@@ -336,7 +364,8 @@ def get_messages_from_db():
                 'email': row[2],
                 'message': row[3],
                 'timestamp': row[4],
-                'created_at': row[5]
+                'email_sent': bool(row[5]) if row[5] is not None else False,
+                'created_at': row[6]
             })
         
         conn.close()
@@ -347,31 +376,76 @@ def get_messages_from_db():
         return []
 
 def send_notification_email(message_data):
-    """Envoie une notification email"""
-    if not all([EMAIL_USER, EMAIL_PASS, ADMIN_EMAIL]):
-        print("⚠️ Configuration email manquante - pas d'envoi d'email")
+    """Envoie une notification email - VERSION AMÉLIORÉE"""
+    print(f"🔧 Configuration email:")
+    print(f"   EMAIL_USER: {EMAIL_USER}")
+    print(f"   EMAIL_PASS: {'***' if EMAIL_PASS else 'VIDE'}")
+    print(f"   ADMIN_EMAIL: {ADMIN_EMAIL}")
+    
+    if not EMAIL_PASS:
+        print("⚠️ EMAIL_PASS n'est pas configuré - impossible d'envoyer l'email")
         return False
     
     try:
-        msg = MIMEMultipart()
+        # Créer le message email
+        msg = MIMEMultipart('alternative')
         msg['From'] = EMAIL_USER
         msg['To'] = ADMIN_EMAIL
         msg['Subject'] = f"🔔 Nouveau message Tunelith - {message_data['name']}"
         
+        # Corps du message HTML avec design amélioré
         html_body = f"""
         <html>
-        <body style="font-family: Arial, sans-serif;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                <div style="background: linear-gradient(135deg, #004aad, #ff6600); color: white; padding: 20px; border-radius: 10px; text-align: center;">
-                    <h2>📨 Nouveau Message Tunelith</h2>
+        <head>
+            <style>
+                body {{ font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; }}
+                .container {{ max-width: 600px; margin: 0 auto; background: #f8fafc; }}
+                .header {{ 
+                    background: linear-gradient(135deg, #004aad, #ff6600); 
+                    color: white; 
+                    padding: 30px 20px; 
+                    text-align: center;
+                    border-radius: 10px 10px 0 0;
+                }}
+                .content {{ background: white; padding: 30px; border-radius: 0 0 10px 10px; }}
+                .info-box {{ 
+                    background: #e3f2fd; 
+                    padding: 15px; 
+                    border-radius: 8px; 
+                    margin: 15px 0;
+                    border-left: 4px solid #ff6600;
+                }}
+                .message-box {{ 
+                    background: #f5f5f5; 
+                    padding: 20px; 
+                    border-radius: 8px; 
+                    margin: 20px 0;
+                    font-style: italic;
+                }}
+                .footer {{ text-align: center; color: #666; font-size: 12px; margin-top: 20px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>📨 Nouveau Message Tunelith</h1>
+                    <p>Un nouveau message a été reçu sur votre site web</p>
                 </div>
-                <div style="background: white; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px; margin-top: 10px;">
-                    <p><strong>👤 Nom:</strong> {message_data['name']}</p>
-                    <p><strong>📧 Email:</strong> {message_data['email']}</p>
-                    <p><strong>🕒 Date:</strong> {message_data['timestamp']}</p>
-                    <div style="background: #e3f2fd; padding: 15px; border-radius: 5px; margin-top: 15px;">
-                        <strong>💬 Message:</strong><br>
+                <div class="content">
+                    <div class="info-box">
+                        <p><strong>👤 Nom du contact:</strong> {message_data['name']}</p>
+                        <p><strong>📧 Email:</strong> {message_data['email']}</p>
+                        <p><strong>🕒 Date et heure:</strong> {message_data['timestamp']}</p>
+                    </div>
+                    
+                    <div class="message-box">
+                        <strong>💬 Message:</strong><br><br>
                         {message_data['message'].replace('\n', '<br>')}
+                    </div>
+                    
+                    <div class="footer">
+                        <p>Ce message a été envoyé automatiquement depuis votre site web Tunelith</p>
+                        <p>Pour répondre, utilisez directement l'adresse email: {message_data['email']}</p>
                     </div>
                 </div>
             </div>
@@ -379,17 +453,42 @@ def send_notification_email(message_data):
         </html>
         """
         
+        # Version texte simple comme fallback
+        text_body = f"""
+        Nouveau message Tunelith
+        
+        Nom: {message_data['name']}
+        Email: {message_data['email']}
+        Date: {message_data['timestamp']}
+        
+        Message:
+        {message_data['message']}
+        
+        ---
+        Message automatique depuis votre site Tunelith
+        """
+        
+        # Attacher les deux versions
+        msg.attach(MIMEText(text_body, 'plain'))
         msg.attach(MIMEText(html_body, 'html'))
         
+        # Configuration SMTP pour Gmail
+        print("📤 Connexion au serveur SMTP Gmail...")
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         server.login(EMAIL_USER, EMAIL_PASS)
+        
+        # Envoyer l'email
         server.sendmail(EMAIL_USER, ADMIN_EMAIL, msg.as_string())
         server.quit()
         
-        print(f"✅ Email de notification envoyé à {ADMIN_EMAIL}")
+        print(f"✅ Email de notification envoyé avec succès à {ADMIN_EMAIL}")
         return True
         
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"❌ Erreur d'authentification SMTP: {e}")
+        print("💡 Vérifiez que vous utilisez un 'App Password' pour Gmail")
+        return False
     except Exception as e:
         print(f"❌ Erreur lors de l'envoi d'email: {e}")
         return False
@@ -398,23 +497,21 @@ def send_notification_email(message_data):
 def home():
     """Page d'accueil principale"""
     try:
-        # Essayer de charger le template depuis le dossier templates
         return render_template('index.html')
     except:
-        # Si le template n'existe pas, utiliser le HTML intégré
         print("⚠️ Template index.html non trouvé, utilisation du HTML intégré")
         return render_template_string(INDEX_HTML)
 
 @app.route('/send_message', methods=['POST'])
 def send_message():
-    """Traitement des messages du formulaire de contact"""
+    """Traitement des messages du formulaire de contact - VERSION AMÉLIORÉE"""
     try:
         # Récupérer les données du formulaire
         name = request.form.get('name', '').strip()
         email = request.form.get('email', '').strip()
         message = request.form.get('message', '').strip()
         
-        print(f"📨 NOUVEAU MESSAGE REÇU:")
+        print(f"\n📨 NOUVEAU MESSAGE REÇU:")
         print(f"   👤 Nom: {name}")
         print(f"   📧 Email: {email}")
         print(f"   💬 Message: {message[:100]}...")
@@ -441,41 +538,51 @@ def send_message():
             if not init_result:
                 return jsonify({'success': False, 'error': 'Erreur de base de données'}), 500
         
-        # Sauvegarder en base de données
-        message_id = save_message_to_db(name, email, message, timestamp)
+        # Préparer les données pour la notification
+        message_data = {
+            'name': name,
+            'email': email,
+            'message': message,
+            'timestamp': timestamp
+        }
+        
+        # Envoyer notification email EN PREMIER
+        print("📤 Tentative d'envoi d'email...")
+        email_sent = send_notification_email(message_data)
+        
+        # Sauvegarder en base de données avec le statut email
+        message_id = save_message_to_db(name, email, message, timestamp, email_sent)
         
         if message_id:
             print(f"✅ Message sauvegardé avec l'ID: {message_id}")
-            
-            # Préparer les données pour la notification
-            message_data = {
-                'id': message_id,
-                'name': name,
-                'email': email,
-                'message': message,
-                'timestamp': timestamp
-            }
-            
-            # Envoyer notification email (optionnel)
-            email_sent = send_notification_email(message_data)
             
             # Vérifier que le message est bien en base
             messages = get_messages_from_db()
             print(f"📊 Total de messages en base après sauvegarde: {len(messages)}")
             
-            # Réponse de succès
+            # Réponse de succès détaillée
+            success_message = "Message envoyé avec succès!"
+            if email_sent:
+                success_message += " Une notification email a été envoyée."
+            else:
+                success_message += " Note: La notification email n'a pas pu être envoyée."
+            
             response_data = {
                 'success': True, 
-                'message': 'Message envoyé avec succès!', 
+                'message': success_message,
                 'id': message_id,
                 'email_sent': email_sent,
-                'total_messages': len(messages)
+                'total_messages': len(messages),
+                'details': {
+                    'name': name,
+                    'email': email,
+                    'timestamp': timestamp
+                }
             }
             
             # Si c'est une requête AJAX, retourner JSON
             if request.headers.get('Content-Type') == 'application/json' or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify(response_data)
-            # Sinon, rediriger vers la page d'accueil
             else:
                 return redirect(url_for('home'))
                 
@@ -495,14 +602,36 @@ def view_messages():
     try:
         messages = get_messages_from_db()
         print(f"📋 Page admin: {len(messages)} messages à afficher")
-        
-        # Utiliser le template intégré pour éviter les problèmes de fichiers
         return render_template_string(MESSAGES_ADMIN_HTML, messages=messages)
-        
     except Exception as e:
         error_msg = f"Erreur lors du chargement des messages: {e}"
         print(f"❌ {error_msg}")
         return f"<h1>Erreur</h1><p>{error_msg}</p><a href='/'>Retour</a>", 500
+
+@app.route('/test_email')
+def test_email():
+    """Test d'envoi d'email"""
+    try:
+        test_data = {
+            'name': 'Test User',
+            'email': 'test@example.com',
+            'message': 'Ceci est un test d\'envoi d\'email depuis Tunelith.',
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        result = send_notification_email(test_data)
+        
+        return jsonify({
+            'email_test': 'SUCCESS' if result else 'FAILED',
+            'config_check': {
+                'EMAIL_USER': EMAIL_USER,
+                'EMAIL_PASS_SET': bool(EMAIL_PASS),
+                'ADMIN_EMAIL': ADMIN_EMAIL
+            },
+            'message': 'Email de test envoyé avec succès!' if result else 'Échec de l\'envoi de l\'email de test.'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/messages')
 def api_messages():
@@ -518,66 +647,9 @@ def api_messages():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/test_db')
-def test_database():
-    """Route de test pour vérifier la base de données"""
-    try:
-        # S'assurer que la BDD existe
-        if not os.path.exists('messages.db'):
-            print("📂 Création de la base de données pour le test...")
-            init_result = init_database()
-            if not init_result:
-                return jsonify({
-                    'database_status': 'ERROR',
-                    'error': 'Impossible de créer la base de données'
-                }), 500
-        
-        messages = get_messages_from_db()
-        
-        return jsonify({
-            'database_status': 'OK',
-            'messages_count': len(messages),
-            'database_exists': os.path.exists('messages.db'),
-            'database_path': os.path.abspath('messages.db'),
-            'recent_messages': messages[:3] if messages else [],
-            'all_messages': messages,  # Pour debug
-            'timestamp': datetime.now().isoformat()
-        })
-    except Exception as e:
-        return jsonify({
-            'database_status': 'ERROR',
-            'error': str(e)
-        }), 500
-
-@app.route('/add_test_message')
-def add_test_message():
-    """Ajouter un message de test"""
-    try:
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        message_id = save_message_to_db(
-            "Test User", 
-            "test@example.com", 
-            "Ceci est un message de test pour vérifier le fonctionnement de la base de données.", 
-            timestamp
-        )
-        
-        if message_id:
-            messages = get_messages_from_db()
-            return jsonify({
-                'success': True,
-                'message': 'Message de test ajouté',
-                'id': message_id,
-                'total_messages': len(messages)
-            })
-        else:
-            return jsonify({'success': False, 'error': 'Échec de l\'ajout du message de test'}), 500
-            
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
 @app.route('/health')
 def health_check():
-    """Contrôle de santé avec info base de données"""
+    """Contrôle de santé avec info base de données et email"""
     try:
         messages_count = len(get_messages_from_db())
         return jsonify({
@@ -585,8 +657,13 @@ def health_check():
             'timestamp': datetime.now().isoformat(),
             'messages_in_db': messages_count,
             'database_exists': os.path.exists('messages.db'),
-            'email_configured': bool(EMAIL_USER and EMAIL_PASS and ADMIN_EMAIL),
-            'version': '2.2-fixed'
+            'email_configured': {
+                'EMAIL_USER': EMAIL_USER,
+                'EMAIL_PASS_SET': bool(EMAIL_PASS),
+                'ADMIN_EMAIL': ADMIN_EMAIL,
+                'fully_configured': bool(EMAIL_USER and EMAIL_PASS and ADMIN_EMAIL)
+            },
+            'version': '3.0-email-fixed'
         })
     except Exception as e:
         return jsonify({
@@ -594,36 +671,12 @@ def health_check():
             'error': str(e)
         }), 500
 
-@app.route('/debug')
-def debug_info():
-    """Informations de debug détaillées"""
-    try:
-        return jsonify({
-            'python_version': os.sys.version,
-            'current_directory': os.getcwd(),
-            'files_in_directory': [f for f in os.listdir('.') if not f.startswith('.')],
-            'database_exists': os.path.exists('messages.db'),
-            'database_size': os.path.getsize('messages.db') if os.path.exists('messages.db') else 0,
-            'environment_vars': {
-                'EMAIL_USER': bool(EMAIL_USER),
-                'EMAIL_PASS': bool(EMAIL_PASS),
-                'ADMIN_EMAIL': bool(ADMIN_EMAIL),
-                'PORT': os.environ.get('PORT', 'Not set'),
-                'RENDER': os.environ.get('RENDER', 'Not on Render')
-            },
-            'flask_version': '2.3+',
-            'messages_count': len(get_messages_from_db())
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 # Initialiser la base de données au démarrage
-print("🚀 Initialisation de l'application Tunelith...")
+print("🚀 Initialisation de l'application Tunelith v3.0...")
+print(f"📧 Configuration email: {EMAIL_USER} -> {ADMIN_EMAIL}")
 init_database()
 
 if __name__ == "__main__":
-    # Initialisation supplémentaire en mode développement
-    print("🔧 Mode développement détecté")
     init_database()
     
     port = int(os.environ.get("PORT", 5000))
@@ -632,7 +685,7 @@ if __name__ == "__main__":
     print(f"🌐 Démarrage de Tunelith sur le port {port}")
     print(f"📊 URL de test de la BDD: http://localhost:{port}/test_db")
     print(f"📧 Page d'administration: http://localhost:{port}/messages")
-    print(f"🔍 Informations de debug: http://localhost:{port}/debug")
-    print(f"➕ Ajouter un message de test: http://localhost:{port}/add_test_message")
+    print(f"✉️ Test d'email: http://localhost:{port}/test_email")
+    print(f"💡 IMPORTANT: Configurez EMAIL_PASS avec un App Password Gmail!")
     
     app.run(host="0.0.0.0", port=port, debug=debug_mode)
